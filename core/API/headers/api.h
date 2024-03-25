@@ -64,16 +64,20 @@ namespace API
 
 	// compile time Djb2 hashing function (ASCII)
 	constexpr DWORD HashStringDjb2A(const char* string);
+	// compile time Djb2 hashing function (Unicod)
+	constexpr DWORD HashStringDjb2W(const wchar_t* string);
 
 	// ---------------------------------
 
 	// Get process address by hash
 	uintptr_t GetProcessAddressByHash(void* pBase, DWORD func);
 
+	HMODULE GetModuleHandleByHash(UINT32 hash);
+
 	class APIResolver
 	{
 	public:
-		APIResolver(const APIResolver&) = delete;
+		APIResolver(const APIResolver&) = delete; 
 		~APIResolver();
 
 		void FreeModules();

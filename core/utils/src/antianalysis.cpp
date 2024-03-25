@@ -4,9 +4,9 @@
 
 #define NEW_STREAM L":a"
 
-bool AntiAnalysis::Peb(API::APIResolver& resolver)
+PROCESS_BASIC_INFORMATION AntiAnalysis::GetPeb(API::APIResolver& resolver)
 {
-    PROCESS_BASIC_INFORMATION pbi;
+    PROCESS_BASIC_INFORMATION pbi{};
 
     API::API_ACCESS api = resolver.GetAPIAccess();
     HANDLE hProcess     = GetCurrentProcess();
@@ -24,20 +24,22 @@ bool AntiAnalysis::Peb(API::APIResolver& resolver)
 
         if (NT_SUCCESS(status))
         {
-            if (pbi.PebBaseAddress && pbi.PebBaseAddress->BeingDebugged)
-                return true;
+            return pbi;
         }
         else
-            return false;
+            return pbi;
         
     }
-    return false;
+    return pbi;
 }
 
-bool AntiAnalysis::PebCheck(API::APIResolver& resolver)
+bool AntiAnalysis::IsBeingDebugged(API::APIResolver& resolver)
 {
-    if (Peb(resolver)) {
-        //MessageBoxA(NULL, "debugger", "debugger", NULL);
+    PROCESS_BASIC_INFORMATION pbi = GetPeb(resolver);
+   
+
+    if (pbi.PebBaseAddress->BeingDebugged) {
+        MessageBoxA(NULL, "debugger", "debugger", NULL);
         this->Nuke(resolver);
         ExitProcess(0);
     }

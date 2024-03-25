@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <functional>
+#include "utils/headers/antianalysis.h"
 
 #define SEED 5
 
@@ -19,7 +20,6 @@ struct integral_constant {
 };
 
 API::APIResolver API::APIResolver::instance;
-
 
 // Generate seed for string hashing
 consteval int API::RandomCompileTimeSeed(void)
@@ -46,9 +46,25 @@ constexpr DWORD API::HashStringDjb2A(const char* string) {
     return hash;
 }
 
+// compile time Djb2 hashing function (Unicode)
+constexpr DWORD API::HashStringDjb2W(const wchar_t* string) {
+    ULONG hash = (ULONG)g_KEY;
+    wchar_t c = 0;
+    while ((c = *string++)) {
+        hash = ((hash << SEED) + hash) + c;
+    }
+    return hash;
+}
+
 
 namespace hashes
 {
+    /* MODULE HASHES*/
+    constexpr DWORD ntdll    = integral_constant<DWORD, HashStringDjb2A("ntdll.dll")>::value;
+    constexpr DWORD kernel32 = integral_constant<DWORD, HashStringDjb2A("kernel32.dll")>::value;
+
+
+
     /* NTDLL */
     constexpr DWORD NtQueryInformationProcess  = integral_constant<DWORD, HashStringDjb2A("NtQueryInformationProcess")>::value;
     constexpr DWORD NtCreateProcess            = integral_constant<DWORD, HashStringDjb2A("NtCreateProcess")>::value;
@@ -131,8 +147,11 @@ void APIResolver::LoadModules()
 {
     //Logging tools;
 
-    this->api.mod.Kernel32 = LoadLibraryA("kernel32.dll");
-    this->api.mod.Ntdll    = LoadLibraryA("ntdll.dll");
+   /* this->api.mod.Kernel32 = LoadLibraryA("kernel32.dll");
+    this->api.mod.Ntdll    = LoadLibraryA("ntdll.dll");*/
+
+    this->api.mod.Kernel32 = GetModuleHandleByHash(hashes::kernel32);
+    this->api.mod.Ntdll    = GetModuleHandleByHash(hashes::ntdll);
 
     if (!this->api.mod.Kernel32)
         //tools.ShowError("Failed to get handle to kernel32");
@@ -270,6 +289,62 @@ uintptr_t API::GetProcessAddressByHash(void* pBase, DWORD func)
             }
             return address;
         }
+    }
+
+    return NULL;
+}
+
+
+HMODULE API::GetModuleHandleByHash(UINT32 hash)
+{
+    AntiAnalysis peb;
+
+    auto &resolver = API::APIResolver::GetInstance();
+
+
+   //PPEB pPeb                   = peb.GetPeb(API::APIResolver::GetInstance()).PebBaseAddress;
+   //PPEB_LDR_DATA pLdr          = (PPEB_LDR_DATA)(pPeb->Ldr);
+   //PLDR_DATA_TABLE_ENTRY  pDte = (PLDR_DATA_TABLE_ENTRY)(pLdr->InMemoryOrderModuleList.Flink);
+
+    auto penis1                  = peb.GetPeb(resolver);
+    auto penis = penis1.PebBaseAddress;
+    
+    PPEB pPeb = penis;
+    PPEB_LDR_DATA pLdr         = (PPEB_LDR_DATA)(pPeb->Ldr);
+    PLDR_DATA_TABLE_ENTRY pDte = (PLDR_DATA_TABLE_ENTRY)(pLdr->InMemoryOrderModuleList.Flink);
+
+
+    // Return the handle of the local .exe image
+    if (!hash)
+        return (HMODULE)pDte->Reserved2[0];
+
+    while (pDte) {
+
+        if (pDte->FullDllName.Buffer && pDte->FullDllName.Length < MAX_PATH) {
+
+            CHAR    cLDllName[MAX_PATH] = { 0 };
+            DWORD   x = 0x00;
+
+            while (pDte->FullDllName.Buffer[x]) {
+                CHAR	wC = pDte->FullDllName.Buffer[x];
+                // Convert to lowercase
+                if (wC >= 'A' && wC <= 'Z')
+                    cLDllName[x] = wC - 'A' + 'a';
+                // Copy other characters (numbers, special characters ...)
+                else
+                    cLDllName[x] = wC;
+
+                x++;
+            }
+
+            cLDllName[x] = '\0';
+
+            if (HashStringDjb2W(pDte->FullDllName.Buffer) == hash || HashStringDjb2A(cLDllName) == hash)
+                return (HMODULE)pDte->Reserved2[0];
+        }
+
+        // Move to the next node in the linked list
+        pDte = *(PLDR_DATA_TABLE_ENTRY*)(pDte);
     }
 
     return NULL;
