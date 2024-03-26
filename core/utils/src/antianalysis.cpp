@@ -4,15 +4,16 @@
 
 #define NEW_STREAM L":a"
 
-PROCESS_BASIC_INFORMATION AntiAnalysis::GetPeb(API::APIResolver& resolver)
-{
+PPEB AntiAnalysis::GetPeb(API::APIResolver::instance) {
+
     PROCESS_BASIC_INFORMATION pbi{};
+    PPEB pPeb = nullptr;  // Initialize to nullptr
+
 
     API::API_ACCESS api = resolver.GetAPIAccess();
     HANDLE hProcess     = GetCurrentProcess();
 
-    if (api.func.pNtQueryInformationProcess)
-    {
+    if (api.func.pNtQueryInformationProcess) {
         ULONG returnLength;
         NTSTATUS status = api.func.pNtQueryInformationProcess(
             hProcess,
@@ -22,23 +23,22 @@ PROCESS_BASIC_INFORMATION AntiAnalysis::GetPeb(API::APIResolver& resolver)
             &returnLength
         );
 
-        if (NT_SUCCESS(status))
-        {
-            return pbi;
+        if (NT_SUCCESS(status)) {
+            pPeb = pbi.PebBaseAddress;  // Store the PEB pointer
         }
-        else
-            return pbi;
-        
+        // No need to return here, continue execution
     }
-    return pbi;
+
+    return pPeb;  // Return the PEB pointer (may be nullptr if NtQueryInformationProcess failed)
 }
+
 
 bool AntiAnalysis::IsBeingDebugged(API::APIResolver& resolver)
 {
-    PROCESS_BASIC_INFORMATION pbi = GetPeb(resolver);
+    auto peb = GetPeb(resolver);
    
 
-    if (pbi.PebBaseAddress->BeingDebugged) {
+    if (peb->BeingDebugged) {
         MessageBoxA(NULL, "debugger", "debugger", NULL);
         this->Nuke(resolver);
         ExitProcess(0);

@@ -1,5 +1,5 @@
-#include "API/headers/api.h"
+//#include "API/headers/api.h"
 
-export module MyModule;
+//export module MyModule;
 
-export API::API_ACCESS UseResolver();
+//export API::API_ACCESS UseResolver();

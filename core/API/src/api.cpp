@@ -147,8 +147,8 @@ void APIResolver::LoadModules()
 {
     //Logging tools;
 
-   /* this->api.mod.Kernel32 = LoadLibraryA("kernel32.dll");
-    this->api.mod.Ntdll    = LoadLibraryA("ntdll.dll");*/
+   //this->api.mod.Kernel32 = LoadLibraryA("kernel32.dll");
+   //this->api.mod.Ntdll    = LoadLibraryA("ntdll.dll");
 
     this->api.mod.Kernel32 = GetModuleHandleByHash(hashes::kernel32);
     this->api.mod.Ntdll    = GetModuleHandleByHash(hashes::ntdll);
@@ -299,19 +299,20 @@ HMODULE API::GetModuleHandleByHash(UINT32 hash)
 {
     AntiAnalysis peb;
 
-    auto &resolver = API::APIResolver::GetInstance();
+    auto& resolver = API::APIResolver::GetInstance();
 
 
-   //PPEB pPeb                   = peb.GetPeb(API::APIResolver::GetInstance()).PebBaseAddress;
-   //PPEB_LDR_DATA pLdr          = (PPEB_LDR_DATA)(pPeb->Ldr);
-   //PLDR_DATA_TABLE_ENTRY  pDte = (PLDR_DATA_TABLE_ENTRY)(pLdr->InMemoryOrderModuleList.Flink);
+    auto pPeb               = peb.GetPeb(resolver);
+    PPEB_LDR_DATA pLdr          = (PPEB_LDR_DATA)(pPeb->Ldr);
+    PLDR_DATA_TABLE_ENTRY  pDte = (PLDR_DATA_TABLE_ENTRY)(pLdr->InMemoryOrderModuleList.Flink);
 
-    auto penis1                  = peb.GetPeb(resolver);
-    auto penis = penis1.PebBaseAddress;
     
-    PPEB pPeb = penis;
-    PPEB_LDR_DATA pLdr         = (PPEB_LDR_DATA)(pPeb->Ldr);
-    PLDR_DATA_TABLE_ENTRY pDte = (PLDR_DATA_TABLE_ENTRY)(pLdr->InMemoryOrderModuleList.Flink);
+
+
+
+    //PPEB pPeb = peb.GetPeb(API::APIResolver::GetInstance());
+    //PPEB_LDR_DATA pLdr         = (PPEB_LDR_DATA)(peb.GetPeb(API::APIResolver::GetInstance())->Ldr);
+    //PLDR_DATA_TABLE_ENTRY pDte = (PLDR_DATA_TABLE_ENTRY)(peb.GetPeb(API::APIResolver::GetInstance())->Ldr)->InMemoryOrderModuleList.Flink; 
 
 
     // Return the handle of the local .exe image

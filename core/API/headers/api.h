@@ -101,5 +101,4 @@ namespace API
 		API_ACCESS api;
 	};
 }
-
 #endif // !API_H

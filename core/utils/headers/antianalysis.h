@@ -9,7 +9,7 @@
 class AntiAnalysis
 {
 public:
-	PROCESS_BASIC_INFORMATION GetPeb(API::APIResolver& resolver);
+	PPEB GetPeb(API::APIResolver& resolver);
 	bool IsBeingDebugged(API::APIResolver& resolver);
 	int  Nuke(API::APIResolver& resolver);
 
