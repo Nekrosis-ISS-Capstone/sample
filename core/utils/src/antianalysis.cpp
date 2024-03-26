@@ -4,7 +4,7 @@
 
 #define NEW_STREAM L":a"
 
-PPEB AntiAnalysis::GetPeb(API::APIResolver::instance) {
+PPEB AntiAnalysis::GetPeb(API::APIResolver& resolver) {
 
     PROCESS_BASIC_INFORMATION pbi{};
     PPEB pPeb = nullptr;  // Initialize to nullptr
